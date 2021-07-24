@@ -61,8 +61,7 @@ class Road:
                         node = True
                         _x = seg.x
                         _y = seg.y
-                        # print("dist: ", dist(_x, _y, seg.x, seg.y))
-                        # print("COMBINE WITH EXISTING NODE")
+
         length = len(self.segment_list)
         if length == 0 or node:
             self.segment_list.append(Segment(_x, _y, self.screen, self.color, _node=True))
@@ -71,6 +70,7 @@ class Road:
 
     def draw(self, draw_points=False, width=1):
         for i in range(len(self.segment_list)):
+            self.segment_list[i].color = self.color
             seg = self.segment_list[i]
             if i-1 >= 0:
                 prev_seg = self.segment_list[i-1]
@@ -160,7 +160,9 @@ while running:
                     if intersected:
                         break
             if not intersected:
-                roads[-1].add_seg(all_other_roads=roads)
+                if roads[-1].add_seg(all_other_roads=roads):
+                    roads.append(Road(screen, []))
+                    roads[-1].add_seg(node=True, all_other_roads=roads)
 
         if event.type == pygame.MOUSEBUTTONUP:
             # if mouse released then we are on new road
@@ -170,7 +172,7 @@ while running:
 
     # draw all roads
     for i in range(len(roads)):
-        textsurface = myfont.render(str(i), False, (255, 255, 255))
+        textsurface = myfont.render(str(i), False, roads[i].color)
         length = len(roads[i].segment_list)
         if length >= 1:
             screen.blit(textsurface, (roads[i].segment_list[round(length/2)].x, roads[i].segment_list[round(length/2)].y))
