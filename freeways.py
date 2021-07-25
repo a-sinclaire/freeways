@@ -106,9 +106,43 @@ while running:
             WIDE_ROADS = not WIDE_ROADS
         if pygame.mouse.get_pressed()[0]:
             # if mouse is down add segments to current road (last road in list)
-            # check if new segment will intersect any previous segments
+            _x, _y = pygame.mouse.get_pos()
             intersected = False
-            if len(roads[-1].segment_list) >= 2:
+            if len(roads[-1].segment_list) == 0:
+                # this is first segment to be added.
+                # if close enough to existing segment make a node and connect there
+                min_seg_dist = 10
+                for i in range(len(roads)):
+                    for j in range(len(roads[i].segment_list)):
+                        seg = roads[i].segment_list[j]
+                        if dist(_x, _y, seg.x, seg.y) < min_seg_dist:
+                            _x = seg.x
+                            _y = seg.y
+                            # add a node at the start of this new road
+                            roads[-1].add_seg(node=True, x=_x, y=_y, all_other_roads=roads)
+
+                            # find segments in road i where the node was placed
+                            # split road i into two roads at node intersection
+                            for k in range(len(roads[i].segment_list)):
+                                if roads[i].segment_list[k].x == _x and roads[i].segment_list[k].y == _y :
+                                    # new node is at segment k in road i
+                                    pre_segments = (roads[i].segment_list[0:k:1])
+                                    post_segments = (roads[i].segment_list[k::1])
+                                    roads[i].segment_list = pre_segments
+                                    roads[i].add_seg(node=True, x=_x, y=_y, all_other_roads=roads)
+                                    roads.append(Road(screen, post_segments))
+                                    roads[-1].segment_list.insert(0, Segment(_x, _y, screen, roads[-1].color, _node=True))
+                                    break
+                            # Now we are on a new road (add a node at start)
+                            roads.append(Road(screen, []))
+                            roads[-1].add_seg(node=True, x=_x, y=_y, all_other_roads=roads)
+                            intersected = True
+                            break
+                    if intersected:
+                        break
+
+            # check if new segment will intersect any previous segments
+            if len(roads[-1].segment_list) >= 2 and not intersected:
                 A = roads[-1].segment_list[-1]
                 for i in range(len(roads)):
                     for j in range(len(roads[i].segment_list)):
@@ -125,7 +159,6 @@ while running:
                         D = seg_list[j-1]
 
                         # check intersection
-                        _x, _y = pygame.mouse.get_pos()
                         line1 = LineString([[_x, _y], [A.x, A.y]])
                         line2 = LineString([[C.x, C.y], [D.x, D.y]])
                         R = line1.intersection(line2)
@@ -143,7 +176,7 @@ while running:
                                 if roads[i].segment_list[k].x <= x <= roads[i].segment_list[k-1].x or roads[i].segment_list[k].x >= x >= roads[i].segment_list[k-1].x:
                                     if roads[i].segment_list[k].y <= y <= roads[i].segment_list[k-1].y or roads[i].segment_list[k].y >= y >= roads[i].segment_list[k-1].y:
                                         # new node is between segments k and k-1 in road i
-                                        pre_segments = (roads[i].segment_list[0:k-1:1])
+                                        pre_segments = (roads[i].segment_list[0:k:1])
                                         post_segments = (roads[i].segment_list[k::1])
                                         roads[i].segment_list = pre_segments
                                         roads[i].add_seg(node=True, x=x, y=y, all_other_roads=roads)
@@ -160,9 +193,8 @@ while running:
                     if intersected:
                         break
             if not intersected:
-                if roads[-1].add_seg(all_other_roads=roads):
-                    roads.append(Road(screen, []))
-                    roads[-1].add_seg(node=True, all_other_roads=roads)
+                # nothing interesting, add new seg at mouse_xy
+                roads[-1].add_seg(all_other_roads=roads)
 
         if event.type == pygame.MOUSEBUTTONUP:
             # if mouse released then we are on new road
