@@ -21,6 +21,10 @@ def dist(x1, y1, x2, y2):
     return np.sqrt(np.power(x1-x2, 2)+np.power(y1-y2, 2))
 
 
+def angle_diff(ang1, ang2):
+    return min((2*np.pi) - abs(ang1 - ang2), abs(ang1 - ang2))
+
+
 class Segment:
     def __init__(self, _x, _y, _screen, _color=(255, 255, 255), _node=False):
         self.x = _x
@@ -96,6 +100,19 @@ class Road:
             if draw_points:
                 self.segment_list[i].draw()
 
+    def get_weight(self):
+        turn_ammount = 0
+        prev_ang = 0
+        for i in range(len(self.segment_list)):
+            if i == 0:
+                continue
+            seg = self.segment_list[i]
+            prev_seg = self.segment_list[i - 1]
+            ang = np.arctan2(seg.y-prev_seg.y, seg.x-prev_seg.x)
+            turn_ammount += angle_diff(ang, prev_ang)
+            prev_ang = ang
+        return round(turn_ammount * len(self.segment_list), 2)
+
 
 class Node:
     def __init__(self, number, x, y):
@@ -105,9 +122,10 @@ class Node:
 
 
 class Edge:
-    def __init__(self, startNode, endNode):
+    def __init__(self, startNode, endNode, weight):
         self.startNode = startNode
         self.endNode = endNode
+        self.weight = weight
 
 
 G = nx.DiGraph()
@@ -166,15 +184,19 @@ while running:
                         startNode = node
                     if node.x == road.segment_list[-1].x and node.y == road.segment_list[-1].y:
                         endNode = node
-                edges.append(Edge(startNode, endNode))
+                edges.append(Edge(startNode, endNode, weight=road.get_weight()))
             for e in edges:
-                G.add_edge(e.startNode.number, e.endNode.number)
+                G.add_edge(e.startNode.number, e.endNode.number, weight=e.weight)
 
             print("Nodes of graph: ")
             print(G.nodes())
             print("Edges of graph: ")
             print(G.edges())
-            nx.draw(G, with_labels=True)
+            # pos = nx.nx_pydot.graphviz_layout(G)
+            pos = nx.planar_layout(G)
+            nx.draw(G, pos=pos, with_labels=True)
+            labels = nx.get_edge_attributes(G, 'weight')
+            nx.draw_networkx_edge_labels(G, pos=pos, edge_labels=labels)
             plt.savefig("graph_test.png")
             plt.show()
         if pygame.mouse.get_pressed()[0]:
@@ -292,6 +314,12 @@ while running:
     for n in nodes:
         textsurface = myfont.render(str(n.number), False, (255, 255, 255))
         screen.blit(textsurface, (n.x, n.y))
+    # for i in range(len(roads)):
+    #     try:
+    #         textsurface = myfont.render(str(edges[i].weight), False, (255, 255, 255))
+    #         screen.blit(textsurface, (roads[i].segment_list[round(length/2)].x, roads[i].segment_list[round(length/2)].y))
+    #     except:
+    #         pass
 
     pygame.display.flip()
 
