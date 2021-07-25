@@ -46,12 +46,14 @@ class Road:
         self.min_dist = 20
         self.color = (random.randint(100, 255), random.randint(100, 255), random.randint(100, 255))
 
-    def add_seg(self, node=False, x=0, y=0, all_other_roads=None):
+    def add_seg(self, node=False, x=0, y=0, all_other_roads=[]):
         _x, _y = pygame.mouse.get_pos()
         if node:
             _x = x
             _y = y
+        new_road = False
         min_node_distance = 10
+        # go through all existing nodes to check if we can connect to existing nodes
         for road in all_other_roads:
             for seg in road.segment_list:
                 if seg.node:
@@ -60,9 +62,16 @@ class Road:
                             if seg == self.segment_list[-1]:
                                 continue
                         # close enough to existing node to combine with it
+                        new_road = True
                         node = True
                         _x = seg.x
                         _y = seg.y
+                        # add node at end of this road
+                        self.segment_list.append(Segment(_x, _y, self.screen, self.color, _node=True))
+                        # need to start a new road
+                        roads.append(Road(screen, []))
+                        roads[-1].segment_list.insert(0, Segment(_x, _y, self.screen, self.color, _node=True))
+                        return
 
         length = len(self.segment_list)
         if length == 0 or node:
@@ -76,10 +85,12 @@ class Road:
             seg = self.segment_list[i]
             if i-1 >= 0:
                 prev_seg = self.segment_list[i-1]
-                # pygame.draw.line(screen, self.color, (seg.x, seg.y), (prev_seg.x, prev_seg.y), width)
-                # draw arrow instead of line
-                ang = np.arctan2(seg.y-prev_seg.y, seg.x-prev_seg.x)
-                pygame.draw.lines(screen, self.color, closed=False, points=[(prev_seg.x, prev_seg.y), (seg.x-10*np.cos(ang), seg.y-10*np.sin(ang))], width=width)
+                if width > 1:
+                    pygame.draw.line(screen, self.color, (seg.x, seg.y), (prev_seg.x, prev_seg.y), width)
+                else:
+                    # draw arrow instead of line
+                    ang = np.arctan2(seg.y-prev_seg.y, seg.x-prev_seg.x)
+                    pygame.draw.lines(screen, self.color, closed=False, points=[(prev_seg.x, prev_seg.y), (seg.x-10*np.cos(ang), seg.y-10*np.sin(ang))], width=width)
             if draw_points:
                 self.segment_list[i].draw()
 
@@ -90,10 +101,12 @@ class Node:
         self.x = x
         self.y = y
 
+
 class Edge:
     def __init__(self, startNode, endNode):
         self.startNode = startNode
         self.endNode = endNode
+
 
 G = nx.DiGraph()
 roads = [Road(screen, [])]
