@@ -1,8 +1,10 @@
 import random
 import time
 
+import matplotlib.pyplot as plt
 import shapely
 import copy
+import networkx as nx
 from shapely.geometry import LineString, Point
 import pygame
 import numpy as np
@@ -74,12 +76,29 @@ class Road:
             seg = self.segment_list[i]
             if i-1 >= 0:
                 prev_seg = self.segment_list[i-1]
-                pygame.draw.line(screen, self.color, (seg.x, seg.y), (prev_seg.x, prev_seg.y), width)
+                # pygame.draw.line(screen, self.color, (seg.x, seg.y), (prev_seg.x, prev_seg.y), width)
+                # draw arrow instead of line
+                ang = np.arctan2(seg.y-prev_seg.y, seg.x-prev_seg.x)
+                pygame.draw.lines(screen, self.color, closed=False, points=[(prev_seg.x, prev_seg.y), (seg.x-10*np.cos(ang), seg.y-10*np.sin(ang))], width=width)
             if draw_points:
                 self.segment_list[i].draw()
 
 
+class Node:
+    def __init__(self, number, x, y):
+        self.number = number
+        self.x = x
+        self.y = y
+
+class Edge:
+    def __init__(self, startNode, endNode):
+        self.startNode = startNode
+        self.endNode = endNode
+
+G = nx.DiGraph()
 roads = [Road(screen, [])]
+nodes = []
+edges = []
 
 no_loop = False
 running = True
@@ -97,6 +116,9 @@ while running:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
             # reset
             roads = [Road(screen, [])]
+            nodes = []
+            edges = []
+            G = nx.DiGraph()
             print("---")
         if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
             # show points
@@ -104,6 +126,36 @@ while running:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_w:
             # make roads wide
             WIDE_ROADS = not WIDE_ROADS
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
+            # calculate graph
+            # convert roads into a graph
+            for road in roads:
+                for seg in road.segment_list:
+                    exists = False
+                    if seg.node:
+                        for node in nodes:
+                            if seg.x == node.x and seg.y == node.y:
+                                # node exists in node list already
+                                exists = True
+                        if exists is False:
+                            nodes.append(Node(len(nodes), seg.x, seg.y))
+            for road in roads:
+                if len(road.segment_list) <1:
+                    continue
+                for node in nodes:
+                    if node.x == road.segment_list[0].x and node.y == road.segment_list[0].y:
+                        startNode = node
+                    if node.x == road.segment_list[-1].x and node.y == road.segment_list[-1].y:
+                        endNode = node
+                edges.append(Edge(startNode, endNode))
+            for e in edges:
+                G.add_edge(e.startNode.number, e.endNode.number)
+
+            print("Nodes of graph: ")
+            print(G.nodes())
+            nx.draw(G, with_labels=True)
+            plt.savefig("graph_test.png")
+            plt.show()
         if pygame.mouse.get_pressed()[0]:
             # if mouse is down add segments to current road (last road in list)
             _x, _y = pygame.mouse.get_pos()
@@ -207,12 +259,18 @@ while running:
         textsurface = myfont.render(str(i), False, roads[i].color)
         length = len(roads[i].segment_list)
         if length >= 1:
-            screen.blit(textsurface, (roads[i].segment_list[round(length/2)].x, roads[i].segment_list[round(length/2)].y))
+            pass
+            # screen.blit(textsurface, (roads[i].segment_list[round(length/2)].x, roads[i].segment_list[round(length/2)].y))
         if WIDE_ROADS:
             w = 50
         else:
             w = 1
         roads[i].draw(draw_points=DRAW_POINTS, width=w)
+
+    # draw node labels
+    for n in nodes:
+        textsurface = myfont.render(str(n.number), False, (255, 255, 255))
+        screen.blit(textsurface, (n.x, n.y))
 
     pygame.display.flip()
 
