@@ -79,18 +79,20 @@ class Road:
         elif dist(_x, _y, self.segment_list[-1].x, self.segment_list[-1].y) > self.min_dist:
             self.segment_list.append(Segment(_x, _y, self.screen, self.color, node))
 
-    def draw(self, draw_points=False, width=1):
+    def draw(self, draw_points=False, draw_arrow=False, width=1):
         for i in range(len(self.segment_list)):
             self.segment_list[i].color = self.color
             seg = self.segment_list[i]
             if i-1 >= 0:
                 prev_seg = self.segment_list[i-1]
-                if width > 1:
+                if width > 1 or not draw_arrow:
                     pygame.draw.line(screen, self.color, (seg.x, seg.y), (prev_seg.x, prev_seg.y), width)
                 else:
                     # draw arrow instead of line
                     ang = np.arctan2(seg.y-prev_seg.y, seg.x-prev_seg.x)
-                    pygame.draw.lines(screen, self.color, closed=False, points=[(prev_seg.x, prev_seg.y), (seg.x-10*np.cos(ang), seg.y-10*np.sin(ang))], width=width)
+                    arrow_breadth = 3*np.pi/4
+                    arrow_length = 8
+                    pygame.draw.lines(screen, self.color, closed=False, points=[(prev_seg.x, prev_seg.y), (seg.x, seg.y), (seg.x+arrow_length*np.cos(ang+arrow_breadth), seg.y+arrow_length*np.sin(ang+arrow_breadth)), (seg.x, seg.y), (seg.x+10*np.cos(ang-arrow_breadth), seg.y+arrow_length*np.sin(ang-arrow_breadth))], width=width)
             if draw_points:
                 self.segment_list[i].draw()
 
@@ -117,6 +119,7 @@ no_loop = False
 running = True
 DRAW_POINTS = True
 WIDE_ROADS = False
+DRAW_ARROW = True
 while running:
     if no_loop:
         continue
@@ -136,6 +139,9 @@ while running:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
             # show points
             DRAW_POINTS = not DRAW_POINTS
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_a:
+            # show points
+            DRAW_ARROW = not DRAW_ARROW
         if event.type == pygame.KEYDOWN and event.key == pygame.K_w:
             # make roads wide
             WIDE_ROADS = not WIDE_ROADS
@@ -166,6 +172,8 @@ while running:
 
             print("Nodes of graph: ")
             print(G.nodes())
+            print("Edges of graph: ")
+            print(G.edges())
             nx.draw(G, with_labels=True)
             plt.savefig("graph_test.png")
             plt.show()
@@ -278,7 +286,7 @@ while running:
             w = 50
         else:
             w = 1
-        roads[i].draw(draw_points=DRAW_POINTS, width=w)
+        roads[i].draw(draw_points=DRAW_POINTS, draw_arrow=DRAW_ARROW, width=w)
 
     # draw node labels
     for n in nodes:
