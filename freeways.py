@@ -204,8 +204,19 @@ while running:
                                 exists = True
                         if exists is False:
                             nodes.append(Node(len(nodes), seg.x, seg.y))
-            for road in roads:
-                if len(road.segment_list) <1:
+
+            for road in reversed(roads):
+                if len(road.segment_list) <= 1:
+                    # road is too short! (skip this one and remove it)
+                    roads.remove(road)
+                    continue
+                all_nodes = True
+                for seg in road.segment_list:
+                    if not seg.node:
+                        all_nodes = False
+                if all_nodes:
+                    # road is ALL nodes! (skip this one and remove it)
+                    roads.remove(road)
                     continue
                 for node in nodes:
                     if node.x == road.segment_list[0].x and node.y == road.segment_list[0].y:
@@ -216,6 +227,8 @@ while running:
             for e in edges:
                 G.add_edge(e.startNode.number, e.endNode.number, weight=e.weight)
 
+            print("Number of roads: ")
+            print(len(roads))
             print("Nodes of graph: ")
             print(G.nodes())
             print("Edges of graph: ")
