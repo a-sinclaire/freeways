@@ -11,8 +11,11 @@ import numpy as np
 
 pygame.init()
 pygame.font.init()
-screen = pygame.display.set_mode([800, 600])
+WIDTH = 800
+HEIGHT = round(WIDTH*0.75)
+screen = pygame.display.set_mode([WIDTH, HEIGHT])
 myfont = pygame.font.SysFont('Comic Sans MS', 30)
+helpfont = pygame.font.SysFont('Comic Sans MS', 15)
 
 segment_list = []
 
@@ -166,6 +169,8 @@ running = True
 DRAW_POINTS = True
 WIDE_ROADS = False
 DRAW_ARROW = True
+DRAW_LABLES = True
+DRAW_HELP = False
 while running:
     if no_loop:
         continue
@@ -182,15 +187,22 @@ while running:
             edges = []
             G = nx.DiGraph()
             print("---")
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_p:
-            # show points
-            DRAW_POINTS = not DRAW_POINTS
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_a:
-            # show points
-            DRAW_ARROW = not DRAW_ARROW
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_w:
-            # make roads wide
-            WIDE_ROADS = not WIDE_ROADS
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_p:
+                # show points
+                DRAW_POINTS = not DRAW_POINTS
+            elif  event.key == pygame.K_a:
+                # show points
+                DRAW_ARROW = not DRAW_ARROW
+            elif event.key == pygame.K_w:
+                # make roads wide
+                WIDE_ROADS = not WIDE_ROADS
+            elif event.key == pygame.K_l:
+                # toggle lables (weights and node nums)
+                DRAW_LABLES = not DRAW_LABLES
+            elif event.key == pygame.K_h:
+                # toogle help
+                DRAW_HELP = not DRAW_HELP
         if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
             # calculate graph
             # convert roads into a graph
@@ -240,6 +252,9 @@ while running:
             nx.draw_networkx_edge_labels(G, pos=pos, edge_labels=labels)
             plt.savefig("graph_test.png")
             plt.show()
+            # add new road back in because we removed all 0 length roads (including the one we wanted at the end)
+            roads.append(Road(screen, []))
+
         if pygame.mouse.get_pressed()[0]:
             # if mouse is down add segments to current road (last road in list)
             _x, _y = pygame.mouse.get_pos()
@@ -340,11 +355,10 @@ while running:
 
     # draw all roads
     for i in range(len(roads)):
-        textsurface = myfont.render(str(i), False, roads[i].color)
+        textsurface = myfont.render(str(roads[i].get_weight()), False, roads[i].color)
         length = len(roads[i].segment_list)
-        if length >= 1:
-            pass
-            # screen.blit(textsurface, (roads[i].segment_list[round(length/2)].x, roads[i].segment_list[round(length/2)].y))
+        if length >= 1 and DRAW_LABLES:
+            screen.blit(textsurface, (roads[i].segment_list[round(length/2)].x, roads[i].segment_list[round(length/2)].y))
         if WIDE_ROADS:
             w = 15
         else:
@@ -352,15 +366,16 @@ while running:
         roads[i].draw(draw_points=DRAW_POINTS, draw_arrow=DRAW_ARROW, width=w)
 
     # draw node labels
-    for n in nodes:
-        textsurface = myfont.render(str(n.number), False, (255, 255, 255))
-        screen.blit(textsurface, (n.x, n.y))
-    # for i in range(len(roads)):
-    #     try:
-    #         textsurface = myfont.render(str(edges[i].weight), False, (255, 255, 255))
-    #         screen.blit(textsurface, (roads[i].segment_list[round(length/2)].x, roads[i].segment_list[round(length/2)].y))
-    #     except:
-    #         pass
+    if DRAW_LABLES:
+        for n in nodes:
+            textsurface = myfont.render(str(n.number), False, (255, 255, 255))
+            screen.blit(textsurface, (n.x, n.y))
+
+    if DRAW_HELP:
+        text = ["h - toggle help", "a - toggle arrows", "p - toggle points", "l - toggle labels", "w - toggle wide roads", "c - calculate graph"]
+        for line in range(len(text)):
+            textsurface = helpfont.render(text[line], True, (255, 255, 255))
+            screen.blit(textsurface, (WIDTH-textsurface.get_width(), helpfont.get_height()*line))
 
     pygame.display.flip()
 
