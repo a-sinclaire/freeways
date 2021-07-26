@@ -89,14 +89,42 @@ class Road:
             seg = self.segment_list[i]
             if i-1 >= 0:
                 prev_seg = self.segment_list[i-1]
-                if width > 1 or not draw_arrow:
-                    pygame.draw.line(screen, self.color, (seg.x, seg.y), (prev_seg.x, prev_seg.y), width)
-                else:
+                if width > 1:
+                    ang = np.arctan2(seg.y - prev_seg.y, seg.x - prev_seg.x)
+                    arrow_breadth = np.pi / 2
+                    arrow_length = width  #road width
+                    if i-2 >= 0:
+                        prev_prev_seg = self.segment_list[i-2]
+                        prev_ang = np.arctan2(prev_seg.y - prev_prev_seg.y, prev_seg.x - prev_prev_seg.x)
+                        pygame.draw.polygon(screen, self.color,
+                                          points=[(prev_seg.x, prev_seg.y),
+                                                  (prev_seg.x + arrow_length * np.cos(prev_ang + arrow_breadth), prev_seg.y + arrow_length * np.sin(prev_ang + arrow_breadth)),
+                                                  (prev_seg.x + arrow_length * np.cos(ang + arrow_breadth), prev_seg.y + arrow_length * np.sin(ang + arrow_breadth)),
+                                                  (seg.x + arrow_length * np.cos(ang + arrow_breadth), seg.y + arrow_length * np.sin(ang + arrow_breadth)),
+                                                  (seg.x, seg.y),
+                                                  (seg.x + 10 * np.cos(ang - arrow_breadth), seg.y + arrow_length * np.sin(ang - arrow_breadth)),
+                                                  (prev_seg.x + 10 * np.cos(ang - arrow_breadth), prev_seg.y + arrow_length * np.sin(ang - arrow_breadth)),
+                                                  (prev_seg.x + 10 * np.cos(prev_ang - arrow_breadth), prev_seg.y + arrow_length * np.sin(prev_ang - arrow_breadth))])
+                    else:
+                        pygame.draw.polygon(screen, self.color,
+                                            points=[(prev_seg.x, prev_seg.y),
+                                                    (prev_seg.x + arrow_length * np.cos(ang + arrow_breadth),
+                                                     prev_seg.y + arrow_length * np.sin(ang + arrow_breadth)),
+                                                    (seg.x + arrow_length * np.cos(ang + arrow_breadth),
+                                                     seg.y + arrow_length * np.sin(ang + arrow_breadth)),
+                                                    (seg.x, seg.y),
+                                                    (seg.x + 10 * np.cos(ang - arrow_breadth),
+                                                     seg.y + arrow_length * np.sin(ang - arrow_breadth)),
+                                                    (prev_seg.x + 10 * np.cos(ang - arrow_breadth),
+                                                     prev_seg.y + arrow_length * np.sin(ang - arrow_breadth))])
+                elif draw_arrow:
                     # draw arrow instead of line
                     ang = np.arctan2(seg.y-prev_seg.y, seg.x-prev_seg.x)
                     arrow_breadth = 3*np.pi/4
                     arrow_length = 8
                     pygame.draw.lines(screen, self.color, closed=False, points=[(prev_seg.x, prev_seg.y), (seg.x, seg.y), (seg.x+arrow_length*np.cos(ang+arrow_breadth), seg.y+arrow_length*np.sin(ang+arrow_breadth)), (seg.x, seg.y), (seg.x+10*np.cos(ang-arrow_breadth), seg.y+arrow_length*np.sin(ang-arrow_breadth))], width=width)
+                else:
+                    pygame.draw.line(screen, self.color, (seg.x, seg.y), (prev_seg.x, prev_seg.y), width)
             if draw_points:
                 self.segment_list[i].draw()
 
@@ -305,7 +333,7 @@ while running:
             pass
             # screen.blit(textsurface, (roads[i].segment_list[round(length/2)].x, roads[i].segment_list[round(length/2)].y))
         if WIDE_ROADS:
-            w = 50
+            w = 15
         else:
             w = 1
         roads[i].draw(draw_points=DRAW_POINTS, draw_arrow=DRAW_ARROW, width=w)
